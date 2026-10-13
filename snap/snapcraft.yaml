@@ -16,6 +16,7 @@ website: https://github.com/ogra1/ubuntu-core-model-builder
 confinement: classic
 grade: stable
 base: core24
+compression: lzo
 
 platforms:
   amd64:
