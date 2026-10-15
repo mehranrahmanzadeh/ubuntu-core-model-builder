@@ -12,6 +12,7 @@ import '../models/wizard_step.dart';
 import '../services/model_import_service.dart';
 import '../services/host_env.dart';
 import '../services/store_api_service.dart';
+import '../services/rust_surl_service.dart';
 import '../services/surl_service.dart';
 
 class MetadataPage extends StatefulWidget {
@@ -419,15 +420,15 @@ class _MetadataPageState extends State<MetadataPage> {
   }
 
   Future<void> _queryAndShowStores(BuildContext context) async {
-    final surl = SurlService();
+    final surl = RustSurlService();
     state.setBusy(true, message: 'Fetching your stores...');
     try {
       List<BrandStore> stores;
       try {
         stores = await surl.listStores();
       } on SurlAuthException {
-        state.setBusy(true, message: 'Opening store login in a terminal...');
-        await surl.webLogin();
+        state.setBusy(true, message: 'Signing you in to the store...');
+        await surl.webLogin(context: context);
         state.setBusy(true, message: 'Fetching your stores...');
         stores = await surl.listStores();
       }

@@ -1,30 +1,34 @@
-// This is a basic Flutter widget test.
+// App smoke test: the wizard shell builds and shows the account step.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// (Replaces the default counter-app template test, which referenced a
+// `MyApp` class that never existed in this project.)
+//
+// The Rust auth backend is not initialized in widget tests (main() does
+// that); RustStoreService degrades gracefully to "not signed in".
+import 'dart:ui';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:ubuntu_core_model_builder/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('wizard shell builds and shows the Account step',
+      (WidgetTester tester) async {
+    // This is a desktop app: size the test surface like a real window
+    // (the default 800x600 viewport is too narrow for the account page's
+    // button row and triggers a benign YaruTile overflow in tests only).
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpWidget(const ModelBuilderApp());
+    // Bounded pumps, NOT pumpAndSettle: the app owns a periodic poll
+    // timer (RustStoreService), which would otherwise never settle.
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // App bar + the first wizard step's headline.
+    expect(find.text('Model Builder'), findsOneWidget);
+    expect(find.text('Getting Started'), findsOneWidget);
+    expect(find.text('Sign in'), findsOneWidget);
   });
 }

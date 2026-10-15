@@ -6,11 +6,15 @@ import 'package:flutter/widgets.dart';
 import 'package:yaru/yaru.dart';
 
 import 'pages/home_page.dart';
-import 'services/key_service.dart';
+import 'services/rust_key_service.dart';
+import 'services/rust_store_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   _installShutdownHandlers();
+  // Restore a persisted Snap Store session from the Rust auth backend
+  // (no-op when the native library is missing or there is no saved pair).
+  await RustStoreService.bootstrap();
   runApp(const ModelBuilderApp());
 }
 
@@ -20,7 +24,7 @@ Future<void> _cleanup() async {
   if (_cleanedUp) return;
   _cleanedUp = true;
   try {
-    await KeyService.stopSnapGpgAgent().timeout(const Duration(seconds: 3));
+    await RustKeyService.stopSnapGpgAgent().timeout(const Duration(seconds: 3));
   } catch (_) {
     // Never block on cleanup failure.
   }

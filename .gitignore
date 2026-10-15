@@ -24,3 +24,6 @@ prime/
 
 # OS
 .DS_Store
+
+# Rust auth backend (rust/) -- local build artifacts
+rust/target/

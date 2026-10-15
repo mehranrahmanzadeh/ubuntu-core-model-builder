@@ -7,6 +7,7 @@ import '../models/model_assertion.dart';
 import '../models/snap_entry.dart';
 import '../services/assertion_builder.dart';
 import '../services/store_api_service.dart';
+import '../services/rust_surl_service.dart';
 import '../services/surl_service.dart';
 import '../widgets/snap_search_field.dart';
 
@@ -40,7 +41,7 @@ class _SnapsPageState extends State<SnapsPage> {
   String? _catalogForStore;
   bool _fetchingCatalog = false;
   String? _storeName; // resolved display name for _storeId
-  final SurlService _surl = SurlService();
+  final RustSurlService _surl = RustSurlService();
   // Session cache: storeId -> catalog.
   static final Map<String, List<StoreCatalogSnap>> _catalogCache = {};
 
@@ -162,7 +163,8 @@ class _SnapsPageState extends State<SnapsPage> {
         if (ok != true) {
           return; // user declined; leave catalog unfetched
         }
-        await _surl.webLogin();
+        if (!mounted) return;
+        await _surl.webLogin(context: context);
         snaps = await _surl.listStoreSnaps(storeId);
       }
       _catalogCache[storeId] = snaps;
@@ -189,11 +191,11 @@ class _SnapsPageState extends State<SnapsPage> {
         title: const Text('Sign in to browse this brand store'),
         content: const Text(
           'Browsing snaps in a brand store requires signing in to the store. '
-          'A terminal will open running "snapcraft export-login" — enter your '
-          'Ubuntu One email, password and 2FA there. This requests '
-          '"store-admin" permission (needed to list a store\'s snaps); the '
-          'app uses it only to browse the catalog.\n\n'
-          'Open the login terminal now?',
+          'You will be asked for your Ubuntu One email, password and 2FA '
+          'code. This requests the "store-admin" permission (needed to '
+          'list a store\'s snaps); the app uses it only to browse the '
+          'catalog.\n\n'
+          'Sign in now?',
         ),
         actions: [
           TextButton(
@@ -202,7 +204,7 @@ class _SnapsPageState extends State<SnapsPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Open login terminal'),
+            child: const Text('Sign in'),
           ),
         ],
       ),

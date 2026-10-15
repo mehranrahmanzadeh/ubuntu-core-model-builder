@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/status_colors.dart';
 import '../models/wizard_step.dart';
-import '../services/store_service.dart';
+import '../services/rust_store_service.dart';
 import '../services/tool_locator.dart';
 import 'account_page.dart';
 import 'metadata_page.dart';
@@ -52,10 +52,10 @@ class _HomePageState extends State<HomePage> {
     try {
       final tools = await ToolLocator.check();
       _state.toolStatus = tools;
-      if (tools.ready) {
-        final account = await StoreService().getCurrentAccount();
-        _state.setAccount(account);
-      }
+      // The Rust auth backend needs no external tools; restore the
+      // account whenever the backend is available (it is a no-op otherwise).
+      final account = await RustStoreService().getCurrentAccount();
+      _state.setAccount(account);
     } finally {
       _state.busy = false;
     }

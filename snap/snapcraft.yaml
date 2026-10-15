@@ -61,6 +61,9 @@ apps:
     environment:
       PATH: $SNAP/bin:$SNAP/usr/bin:$PATH
       LD_LIBRARY_PATH: $SNAP/bin/lib:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$LD_LIBRARY_PATH
+      # Rust auth backend (libsnapstore_auth.so), built by the
+      # snapstore-auth-rust part and primed next to the app binary.
+      SNAPSTORE_AUTH_LIB: $SNAP/bin/libsnapstore_auth.so
       GDK_BACKEND: x11
       LIBGL_DRIVERS_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/dri
       GTK_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gtk-3.0
@@ -102,11 +105,77 @@ parts:
       - xz-utils
       - zip
     override-prime: ""
+  snapstore-auth-rust:
+    # Builds the interactive Snap Store auth backend (libsnapstore_auth.so)
+    # that the app loads via dart:ffi (lib/services/ffi/snapstore_auth_client.dart).
+    #
+    # Self-contained crate: pure-Rust TLS (rustls/ring -- no OpenSSL) and the
+    # built .so links only against libc/libm/libgcc_s, so no stage-packages
+    # are needed; in a classic snap the base libraries resolve from the host
+    # at runtime. A pinned Rust toolchain is installed via rustup into the
+    # build dir (no host toolchain assumptions), and the crate is compiled
+    # with the `minimal` profile for a lean cdylib.
+    #
+    # The library is primed into bin/ (-> $SNAP/bin/libsnapstore_auth.so),
+    # which is where the Dart FFI client probes first (next to the
+    # executable); SNAPSTORE_AUTH_LIB is set in the app environment as well.
+    plugin: nil
+    source: rust
+    build-packages:
+      - build-essential   # cc for ring's C shim
+      - curl
+      - ca-certificates
+    override-build: |
+      set -eux
+      export RUSTUP_HOME="$CRAFT_PART_BUILD/.rustup"
+      export CARGO_HOME="$CRAFT_PART_BUILD/.cargo"
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs           | sh -s -- -y --profile minimal --default-toolchain stable
+
+      . "$CARGO_HOME/env"
+      rustc --version
+      cargo --version
+
+      # Test the library and build the cdylib.
+      # (The tests/mock_http.rs repro is excluded: it hardcodes a path on
+      # the developer machine.)
+      cargo test --release --lib --test integration --test isolate_http
+      cargo build --release
+
+      # Cargo builds into $CRAFT_PART_BUILD (the part's build dir); the
+      # built cdylib is primed next to the app binary.
+      mkdir -p "$CRAFT_PART_INSTALL/bin"
+      cp -v "$CRAFT_PART_BUILD/target/release/libsnapstore_auth.so" \
+          "$CRAFT_PART_INSTALL/bin/libsnapstore_auth.so"
+
+      # Fail fast if any C-ABI entry point the Dart binding resolves
+      # (lib/services/ffi/snapstore_auth_client.dart) is missing from the
+      # built library. The symbol list is dumped to a file first: under
+      # `set -o pipefail` (snapcraft enables it) the early exit of
+      # `grep -q` can SIGPIPE `nm` (exit 141) and fail the part.
+      LIB="$CRAFT_PART_INSTALL/bin/libsnapstore_auth.so"
+      nm -D "$LIB" > "$CRAFT_PART_BUILD/exports.txt"
+      for sym in auth_account_info auth_authorization_header auth_cancel \
+                 auth_drain_events auth_free_string auth_import_exported_login \
+                 auth_logout auth_pending_events auth_register_key \
+                 auth_restore_credentials auth_runtime_get auth_runtime_init \
+                 auth_start_login auth_state auth_store_snaps \
+                 auth_submit_2fa_code auth_submit_credentials auth_whoami; do
+          grep -q " T $sym\$" "$CRAFT_PART_BUILD/exports.txt"
+      done
+
+    override-prime: |
+      craftctl default
+      BASE="core24"
+      patchelf --force-rpath --set-rpath "/snap/$BASE/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR" \
+          $CRAFT_PART_INSTALL/bin/libsnapstore_auth.so
+
   model-builder:
-    after: [flutter-git]
+    after: [flutter-git, snapstore-auth-rust]
     plugin: nil
     source: .
     build-attributes: [enable-patchelf]
+    build-packages:
+      - libsecret-1-dev
     override-build: |
       set -eux
       mkdir -p $CRAFT_PART_INSTALL/bin
@@ -147,6 +216,7 @@ parts:
       - shared-mime-info
       - libglib2.0-bin
       - libibus-1.0-5
+      - libsecret-1-0
   dri-no-patchelf:
     after: [libraries]
     plugin: nil

@@ -3,6 +3,7 @@ import 'dart:io';
 import '../models/model_assertion.dart';
 import 'assertion_parser.dart';
 import 'host_env.dart';
+import 'rust_key_service.dart';
 import 'key_service.dart';
 
 enum CheckStatus { pass, warn, fail }
@@ -25,10 +26,10 @@ class VerificationReport {
 }
 
 class AssertionVerifier {
-  final KeyService _keyService;
+  final RustKeyService _keyService;
 
-  AssertionVerifier({KeyService? keyService})
-      : _keyService = keyService ?? KeyService();
+  AssertionVerifier({RustKeyService? keyService})
+      : _keyService = keyService ?? RustKeyService();
 
   Future<VerificationReport> verify({
     required String signedAssertion,

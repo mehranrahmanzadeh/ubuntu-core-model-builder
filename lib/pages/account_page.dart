@@ -5,8 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/status_colors.dart';
 import '../models/wizard_step.dart';
-import '../services/cancel_token.dart';
-import '../services/store_service.dart';
+import '../services/ffi/snapstore_auth_client.dart';
+import '../services/rust_store_service.dart';
 import '../services/surl_service.dart';
 import '../services/tool_locator.dart';
 
@@ -21,56 +21,25 @@ class AccountPage extends StatelessWidget {
   });
 
   Future<void> _login(BuildContext context) async {
-    final store = StoreService();
-    final cancelToken = CancelToken();
-    LoginSession? session;
-
-    void cancel() {
-      cancelToken.cancel();
-      session?.cancel();
-    }
-
-    state.setBusy(true, message: 'Opening login terminal...');
+    // In-app interactive login (no terminal): the Rust state machine
+    // pauses at each prompt and this call blocks until the flow reaches a
+    // terminal state (succeeded / cancelled / failed). The dialogs are
+    // presented by RustStoreService against [context].
+    final store = RustStoreService();
+    state.setBusy(true, message: 'Signing in…');
     try {
-      try {
-        session = await store.loginInTerminal();
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Complete login in the opened terminal (including any 2FA). '
-                'It will be detected automatically.',
-              ),
-              duration: Duration(seconds: 8),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } on NoTerminalException {
-        if (context.mounted) {
-          await _showManualLoginDialog(context);
-        }
-      }
-
-      state.setBusy(
-        true,
-        message: 'Waiting for login to complete...',
-        onCancel: cancel,
-      );
-      final acct = await store.waitForLogin(cancelToken: cancelToken);
+      await store.loginInteractive(context: context);
+      final acct = await store.getCurrentAccount();
       state.setAccount(acct);
-      await session?.dispose();
-
-      if (acct == null && !cancelToken.isCancelled && context.mounted) {
+      if (acct == null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Login not detected. Press "Refresh" to retry.'),
+            content: Text('Sign-in was cancelled or failed. Press "Sign in" to retry.'),
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } finally {
-      await session?.dispose();
       state.busy = false;
     }
   }
@@ -78,7 +47,7 @@ class AccountPage extends StatelessWidget {
   Future<void> _logout(BuildContext context) async {
     state.setBusy(true, message: 'Signing out...');
     try {
-      await StoreService().logout();
+      await RustStoreService().logout();
       state.setAccount(null);
       // Clear the cached brand-store list so a different account does not see
       // the previous account's stores.
@@ -100,7 +69,7 @@ class AccountPage extends StatelessWidget {
 
     state.setBusy(true, message: 'Importing credentials...');
     try {
-      final acct = await StoreService().importCredentials(creds);
+      final acct = await RustStoreService().importCredentials(creds);
       state.setAccount(acct);
       if (acct == null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -141,28 +110,6 @@ class AccountPage extends StatelessWidget {
     } finally {
       state.busy = false;
     }
-  }
-
-  Future<void> _showManualLoginDialog(BuildContext context) {
-    return showDialog<void>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Sign in required'),
-        content: const SelectableText(
-          'No terminal emulator was found to run the interactive login.\n\n'
-          'Please open a terminal yourself and run:\n\n'
-          '    snapcraft login\n\n'
-          'Complete the login (including any 2FA), then return here. '
-          'It will be detected automatically, or press "Refresh".',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -247,7 +194,7 @@ class AccountPage extends StatelessWidget {
                         label: const Text('Import credentials'),
                       ),
                       ElevatedButton.icon(
-                        onPressed: (tools?.ready ?? false)
+                        onPressed: SnapstoreAuthSession.isAvailable()
                             ? () => _login(context)
                             : null,
                         icon: const Icon(Icons.login),

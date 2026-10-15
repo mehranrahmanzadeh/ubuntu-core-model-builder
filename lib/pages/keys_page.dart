@@ -4,6 +4,7 @@ import 'package:yaru/yaru.dart';
 
 import '../theme/status_colors.dart';
 import '../models/wizard_step.dart';
+import '../services/rust_key_service.dart';
 import '../services/key_service.dart';
 
 class KeysPage extends StatefulWidget {
@@ -17,7 +18,7 @@ class KeysPage extends StatefulWidget {
 class _KeysPageState extends State<KeysPage> {
   static const _prefLastKeyName = 'keys.lastKeyName';
 
-  final KeyService _keyService = KeyService();
+  final RustKeyService _keyService = RustKeyService();
 
   List<SigningKey> _keys = [];
   bool _loading = true;
@@ -151,14 +152,23 @@ class _KeysPageState extends State<KeysPage> {
     widget.state.busy = true;
     try {
       await op();
-      await _loadKeys();
     } on KeyException catch (e) {
       _showError(e.message);
     } catch (e) {
       _showError(e.toString());
     } finally {
+      // Drop the global "busy" overlay *before* refreshing so the reload is
+      // carried by the page's own (lighter) spinner. Holding `busy` across
+      // `_loadKeys()` showed BOTH the dimming overlay and the page spinner
+      // at once (two spinners).
       widget.state.busy = false;
     }
+    // Refresh whether the op succeeded or not: a failed create-and-register
+    // may still have created the local key (worth surfacing with its
+    // Register button so the user can retry), and a success must show
+    // immediately. The page's spinner handles the reload — the same single
+    // spinner a manual "Refresh" click shows.
+    await _loadKeys();
   }
 
   void _showError(String message) {
@@ -395,7 +405,7 @@ class _CreateKeyDialogState extends State<_CreateKeyDialog> {
 
   void _submit() {
     final name = _controller.text.trim();
-    final error = KeyService.validateKeyName(name);
+    final error = RustKeyService.validateKeyName(name);
     if (error != null) {
       setState(() => _error = error);
       return;

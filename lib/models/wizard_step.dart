@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'model_assertion.dart';
-import '../services/store_service.dart';
+import '../services/rust_store_service.dart';
 import '../services/tool_locator.dart';
 
 enum WizardStep { account, metadata, snaps, extras, keys, review }
@@ -107,8 +107,11 @@ class WizardState extends ChangeNotifier {
   }
 
   bool isStepComplete(WizardStep step) => switch (step) {
+        // The Rust auth backend needs no external tooling for login;
+        // only `snap` (snapd) is required — for the local signing
+        // keyring (snap create-key / export-key / sign).
         WizardStep.account =>
-          account != null && (toolStatus?.ready ?? false),
+          account != null && (toolStatus?.hasSnap ?? false),
         WizardStep.metadata => _metadataValid,
         WizardStep.snaps => _snapsValid,
         WizardStep.extras => true, // all Extras are optional
@@ -160,8 +163,8 @@ class WizardState extends ChangeNotifier {
     switch (step) {
       case WizardStep.account:
         if (account == null) errors.add('Sign in to your Snap Store account.');
-        if (!(toolStatus?.ready ?? false)) {
-          errors.add('Install snap and snapcraft tooling.');
+        if (!(toolStatus?.hasSnap ?? false)) {
+          errors.add('Install the snap tooling (snapd).');
         }
       case WizardStep.metadata:
         if (model.model == null || model.model!.isEmpty) {
