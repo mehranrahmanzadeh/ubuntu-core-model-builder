@@ -23,6 +23,13 @@ class StoreApiService {
 
   static const prefCachedStores = 'metadata.cachedStores';
 
+  /// The HTTP client used for store calls. Defaults to a real client;
+  /// injectable in tests.
+  final http.Client _client;
+
+  StoreApiService({http.Client? client})
+      : _client = client ?? http.Client();
+
   Map<String, String> _headers(String architecture, String? storeId) {
     final h = <String, String>{
       'Snap-Device-Architecture': architecture,
@@ -41,7 +48,7 @@ class StoreApiService {
       '$_base/snaps/find?q=${Uri.encodeQueryComponent(query)}'
       '&fields=title,summary,type',
     );
-    final resp = await http.get(uri, headers: _headers(architecture, storeId));
+    final resp = await _client.get(uri, headers: _headers(architecture, storeId));
     if (resp.statusCode != 200) {
       throw Exception('Store search failed (${resp.statusCode}): ${resp.body}');
     }
@@ -71,7 +78,7 @@ class StoreApiService {
       '$_base/snaps/info/${Uri.encodeComponent(name)}'
       '?fields=snap-id,title,summary,type,revision,base',
     );
-    final resp = await http.get(uri, headers: _headers(architecture, storeId));
+    final resp = await _client.get(uri, headers: _headers(architecture, storeId));
     if (resp.statusCode != 200) {
       throw Exception(
           'Store info for "$name" failed (${resp.statusCode}): ${resp.body}');
@@ -119,7 +126,7 @@ class StoreApiService {
       }
     }
 
-    final sorted = channels.toList()..sort(_channelCompare);
+    final sorted = sortChannels(channels);
     var resolvedBase = baseStablePreferred ?? baseForArch;
 
     final resolvedType = (snap['type'] ?? typeFromMap) as String?;
@@ -146,7 +153,7 @@ class StoreApiService {
       '$_base/snaps/info/${Uri.encodeComponent(name)}'
       '?fields=base,revision',
     );
-    final resp = await http.get(uri, headers: _headers(architecture, storeId));
+    final resp = await _client.get(uri, headers: _headers(architecture, storeId));
     if (resp.statusCode != 200) return const [];
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
     final channelMap = body['channel-map'] as List<dynamic>? ?? const [];
@@ -185,7 +192,7 @@ class StoreApiService {
       '$_base/snaps/info/${Uri.encodeComponent(name)}'
       '?fields=base,revision',
     );
-    final resp = await http.get(uri, headers: _headers(architecture, storeId));
+    final resp = await _client.get(uri, headers: _headers(architecture, storeId));
     if (resp.statusCode != 200) return null;
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
     final channelMap = body['channel-map'] as List<dynamic>? ?? const [];
@@ -233,7 +240,7 @@ class StoreApiService {
       '$_base/snaps/info/${Uri.encodeComponent(snapName)}'
       '?fields=revision,resources',
     );
-    final resp = await http.get(uri, headers: _headers(architecture, storeId));
+    final resp = await _client.get(uri, headers: _headers(architecture, storeId));
     if (resp.statusCode != 200) return const [];
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
     final channelMap = body['channel-map'] as List<dynamic>? ?? const [];
@@ -287,7 +294,7 @@ class StoreApiService {
       '$_base/snaps/info/${Uri.encodeComponent(snapName)}'
       '?fields=download,revision',
     );
-    final resp = await http.get(uri, headers: _headers(architecture, storeId));
+    final resp = await _client.get(uri, headers: _headers(architecture, storeId));
     if (resp.statusCode != 200) return null;
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
     final channelMap = body['channel-map'] as List<dynamic>? ?? const [];
@@ -323,7 +330,7 @@ class StoreApiService {
       '$_base/snaps/info/${Uri.encodeComponent(snapName)}'
       '?fields=revision,resources',
     );
-    final resp = await http.get(uri, headers: _headers(architecture, storeId));
+    final resp = await _client.get(uri, headers: _headers(architecture, storeId));
     if (resp.statusCode != 200) return const {};
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
     final channelMap = body['channel-map'] as List<dynamic>? ?? const [];
@@ -359,6 +366,12 @@ class StoreApiService {
     }
     return const {};
   }
+
+  /// Returns [channels] sorted in display order: the `latest` track first,
+  /// then numeric tracks in descending order, and within a track
+  /// stable -> candidate -> beta -> edge.
+  static List<String> sortChannels(Iterable<String> channels) =>
+      channels.toList()..sort(_channelCompare);
 
   static int _channelCompare(String a, String b) {
     final pa = a.split('/');
