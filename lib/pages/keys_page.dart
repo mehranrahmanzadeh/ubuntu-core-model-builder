@@ -4,8 +4,8 @@ import 'package:yaru/yaru.dart';
 
 import '../theme/status_colors.dart';
 import '../models/wizard_step.dart';
+import '../models/signing_key.dart';
 import '../services/rust_key_service.dart';
-import '../services/key_service.dart';
 
 class KeysPage extends StatefulWidget {
   final WizardState state;

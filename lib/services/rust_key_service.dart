@@ -19,8 +19,8 @@ import 'dart:isolate';
 import 'package:process_run/process_run.dart';
 
 import 'ffi/snapstore_auth_client.dart';
+import '../models/signing_key.dart';
 import 'host_env.dart';
-import 'key_service.dart';
 import 'terminal_runner.dart';
 
 class RustKeyService {
@@ -87,8 +87,17 @@ class RustKeyService {
   }
 
   /// Key-name rules (unchanged from `KeyService`).
-  static String? validateKeyName(String name) =>
-      KeyService.validateKeyName(name);
+  /// Validates a signing key name: non-empty, <= 64 chars, and matching
+  /// `^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$` (lowercase letters, digits and
+  /// dashes; no leading/trailing dash). Returns an error message or `null`.
+  static String? validateKeyName(String name) {
+    if (name.isEmpty) return 'Key name is required.';
+    if (name.length > 64) return 'Key name is too long.';
+    if (!RegExp(r'^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$').hasMatch(name)) {
+      return 'Use lowercase letters, digits and dashes only.';
+    }
+    return null;
+  }
 
   /// Creates a key by running `snap create-key <name>` in a terminal so the
   /// passphrase prompt has a real tty. (Host-side, unchanged.)
@@ -219,4 +228,11 @@ class RustKeyService {
     }
     return e.toString();
   }
+}
+
+class KeyException implements Exception {
+  final String message;
+  KeyException(this.message);
+  @override
+  String toString() => message;
 }

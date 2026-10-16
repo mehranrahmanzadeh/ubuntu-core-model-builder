@@ -8,7 +8,6 @@ import '../models/wizard_step.dart';
 import '../services/ffi/snapstore_auth_client.dart';
 import '../services/rust_store_service.dart';
 import '../services/surl_service.dart';
-import '../services/tool_locator.dart';
 
 class AccountPage extends StatelessWidget {
   final WizardState state;
@@ -53,7 +52,7 @@ class AccountPage extends StatelessWidget {
       // the previous account's stores.
       try {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.remove(SurlService.prefCachedStores);
+        await prefs.remove(prefCachedStores);
       } catch (_) {}
     } finally {
       state.busy = false;
@@ -101,17 +100,6 @@ class AccountPage extends StatelessWidget {
     }
   }
 
-  Future<void> _installTools() async {
-    state.setBusy(true, message: 'Installing snapcraft...');
-    try {
-      await ToolLocator.installSnapcraft();
-      state.toolStatus = await ToolLocator.check();
-      state.refresh();
-    } finally {
-      state.busy = false;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final tools = state.toolStatus;
@@ -138,24 +126,6 @@ class AccountPage extends StatelessWidget {
                 ),
                 title: const Text('snap'),
                 subtitle: Text(tools?.snapPath ?? 'Not found'),
-              ),
-              YaruTile(
-                leading: Icon(
-                  (tools?.hasSnapcraft ?? false)
-                      ? Icons.check_circle
-                      : Icons.cancel,
-                  color: (tools?.hasSnapcraft ?? false)
-                      ? StatusColors.success
-                      : Theme.of(context).colorScheme.error,
-                ),
-                title: const Text('snapcraft'),
-                subtitle: Text(tools?.snapcraftPath ?? 'Not found'),
-                trailing: (tools?.hasSnapcraft ?? true)
-                    ? null
-                    : OutlinedButton(
-                        onPressed: _installTools,
-                        child: const Text('Install'),
-                      ),
               ),
               YaruTile(
                 leading: Icon(
@@ -187,9 +157,7 @@ class AccountPage extends StatelessWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       OutlinedButton.icon(
-                        onPressed: (tools?.hasSnapcraft ?? false)
-                            ? () => _importCredentials(context)
-                            : null,
+                        onPressed: () => _importCredentials(context),
                         icon: const Icon(Icons.key_outlined),
                         label: const Text('Import credentials'),
                       ),

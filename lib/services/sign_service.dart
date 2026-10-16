@@ -12,7 +12,9 @@ class SignResult {
   SignResult({required this.signedAssertion, required this.jsonHeader});
 }
 
-class SnapcraftService {
+/// Signs model assertions with `snap sign` (snapd), feeding the JSON
+/// header on stdin and validating the signed assertion output.
+class SignService {
   Future<SignResult> signModel(
     ModelAssertion model,
     String keyName, {

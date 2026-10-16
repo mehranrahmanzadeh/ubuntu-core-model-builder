@@ -7,7 +7,7 @@ import '../models/wizard_step.dart';
 import '../services/assertion_builder.dart';
 import '../services/assertion_verifier.dart';
 import '../services/seed_size_calculator.dart';
-import '../services/snapcraft_service.dart';
+import '../services/sign_service.dart';
 import '../widgets/verification_report_view.dart';
 
 class ReviewPage extends StatefulWidget {
@@ -103,7 +103,7 @@ class _ReviewPageState extends State<ReviewPage> {
     widget.state.busy = true;
     try {
       final result =
-          await SnapcraftService().signModel(widget.state.model, keyName);
+          await SignService().signModel(widget.state.model, keyName);
       final report = await AssertionVerifier().verify(
         signedAssertion: result.signedAssertion,
         originalModel: widget.state.model,
@@ -146,7 +146,7 @@ class _ReviewPageState extends State<ReviewPage> {
     );
     if (location == null) return;
 
-    final svc = SnapcraftService();
+    final svc = SignService();
     await svc.saveToFile(signed, location.path);
     setState(() => _savedPath = location.path);
     await _rememberSaveDir(location.path);

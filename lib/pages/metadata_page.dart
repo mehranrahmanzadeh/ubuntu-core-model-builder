@@ -390,7 +390,7 @@ class _MetadataPageState extends State<MetadataPage> {
   Future<List<BrandStore>> _loadCachedStores() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(SurlService.prefCachedStores);
+      final raw = prefs.getString(prefCachedStores);
       if (raw == null || raw.isEmpty) return const [];
       final list = jsonDecode(raw) as List<dynamic>;
       return list
@@ -405,7 +405,7 @@ class _MetadataPageState extends State<MetadataPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = jsonEncode(stores.map((s) => s.toJson()).toList());
-      await prefs.setString(SurlService.prefCachedStores, raw);
+      await prefs.setString(prefCachedStores, raw);
     } catch (_) {}
   }
 

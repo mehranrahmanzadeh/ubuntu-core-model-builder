@@ -3,8 +3,8 @@ import 'dart:io';
 import '../models/model_assertion.dart';
 import 'assertion_parser.dart';
 import 'host_env.dart';
+import '../models/signing_key.dart';
 import 'rust_key_service.dart';
-import 'key_service.dart';
 
 enum CheckStatus { pass, warn, fail }
 

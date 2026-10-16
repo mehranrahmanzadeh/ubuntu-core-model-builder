@@ -28,9 +28,6 @@ import 'surl_service.dart'
         SurlUnavailableException;
 
 class RustSurlService {
-  /// Same cached-stores preference key the pages use.
-  static const String prefCachedStores = 'metadata.cachedStores';
-
   /// `true` when the app holds a usable store session in-process.
   Future<bool> hasCredential() async {
     final session = SnapstoreAuthSession.current;

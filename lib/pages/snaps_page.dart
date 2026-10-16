@@ -119,7 +119,7 @@ class _SnapsPageState extends State<SnapsPage> {
     if (!_isBrandStore) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(SurlService.prefCachedStores);
+      final raw = prefs.getString(prefCachedStores);
       if (raw == null || raw.isEmpty) return;
       final list = jsonDecode(raw) as List<dynamic>;
       for (final e in list) {

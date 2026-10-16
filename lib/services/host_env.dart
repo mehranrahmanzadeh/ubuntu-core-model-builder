@@ -5,7 +5,7 @@ import 'dart:io';
 ///
 /// The snap sets LD_LIBRARY_PATH, GTK_PATH, GIO_MODULE_DIR, LIBGL_DRIVERS_PATH
 /// and GDK_BACKEND so its own bundled (patchelf'd) libraries are used by the
-/// Flutter app. But when we spawn HOST tools (snap, snapcraft, gpg, pinentry,
+/// Flutter app. But when we spawn HOST tools (snap, gpg, pinentry,
 /// gnome-terminal), those variables poison the child: it tries to load our
 /// bundled libraries instead of the host's, causing launch failures or
 /// missing pinentry dialogs. We strip them so host binaries use host

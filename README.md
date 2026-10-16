@@ -14,15 +14,14 @@ A Flutter desktop GUI for creating and signing Ubuntu Core model assertions.
 <img width="2604" height="1710" alt="Screenshot from 2026-07-21 22-25-39" src="https://github.com/user-attachments/assets/e32ea678-d347-4efb-b709-f4f2056cd242" />
 
 ## Features
-- Interfaces with the snapcraft user and key management
+- In-app Snap Store login via a bundled Rust auth backend (Ubuntu One SSO + 2FA, no external tooling)
 - Searches snaps and auto-resolves snap IDs via direct store calls
-- Create and register signing keys transparently with snapcraft
+- Create and register signing keys against the Snap Store account
 - Typed metadata inputs, wizard flow with step validation
-- Signs models via snap sign and verifies the output
+- Signs models via `snap sign` and verifies the output
 
 ## Requirements (host tools, used via classic confinement)
 - snapd/snap
-- snapcraft (install with: snap install snapcraft --classic)
 - A graphical pinentry (pinentry-gnome3) recommended for passphrase prompts
 
 ## Build for development
@@ -34,6 +33,9 @@ Run: snapcraft
 Then install locally: sudo snap install ./model-builder_0.1.0_amd64.snap --classic --dangerous
 
 ## Confinement
-This app uses classic confinement because it orchestrates snapcrafts account and keyring management and
-needs to utilize model signing via snapd which is not available through the snapd REST API (would mean that
-secrets get sent across REST which is not desirable)
+This app uses classic confinement because it manages the host keyring via snapd
+(`snap keys`, `snap create-key`, `snap export-key`) and needs to utilize model
+signing via snapd (`snap sign`), which is not available through the snapd REST API
+(would mean that secrets get sent across REST which is not desirable).
+Snap Store account and key management run in-app through the bundled Rust
+auth backend.

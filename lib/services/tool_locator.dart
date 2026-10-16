@@ -2,27 +2,32 @@ import 'package:process_run/process_run.dart';
 
 import 'host_env.dart';
 
+/// Status of the host tools the app depends on.
+///
+/// Only `snap` (snapd) is required: store login runs in-app via the Rust
+/// auth bridge, and model signing goes through `snap sign`. [hasPinentry]
+/// is informational — a graphical passphrase prompt is recommended but not
+/// required (passphrase-less keys work without it).
 class ToolStatus {
   final bool hasSnap;
-  final bool hasSnapcraft;
   final bool hasPinentry;
   final String? snapPath;
-  final String? snapcraftPath;
 
   ToolStatus({
     required this.hasSnap,
-    required this.hasSnapcraft,
     required this.hasPinentry,
     this.snapPath,
-    this.snapcraftPath,
   });
 
-  bool get ready => hasSnap && hasSnapcraft;
+  bool get ready => hasSnap;
 }
 
 class ToolLocator {
   static Future<ToolStatus> check() async {
-    final shell = Shell(throwOnError: false, environment: HostEnv.sanitized, includeParentEnvironment: false);
+    final shell = Shell(
+        throwOnError: false,
+        environment: HostEnv.sanitized,
+        includeParentEnvironment: false);
 
     Future<String?> which(String tool) async {
       final r = await shell.run('which $tool');
@@ -32,22 +37,14 @@ class ToolLocator {
     }
 
     final snapPath = await which('snap');
-    final snapcraftPath = await which('snapcraft');
     final pinentry = await which('pinentry-gnome3') ??
         await which('pinentry-gtk-2') ??
         await which('pinentry');
 
     return ToolStatus(
       hasSnap: snapPath != null,
-      hasSnapcraft: snapcraftPath != null,
       hasPinentry: pinentry != null,
       snapPath: snapPath,
-      snapcraftPath: snapcraftPath,
     );
-  }
-
-  static Future<void> installSnapcraft() async {
-    final shell = Shell(throwOnError: false, environment: HostEnv.sanitized, includeParentEnvironment: false);
-    await shell.run('snap install snapcraft --classic');
   }
 }
