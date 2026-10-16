@@ -138,6 +138,12 @@ parts:
       # Test the library and build the cdylib.
       # (The tests/mock_http.rs repro is excluded: it hardcodes a path on
       # the developer machine.)
+      # Launchpad build containers run behind a firewall proxy: reqwest
+      # honors HTTP_PROXY even for loopback, so exempt 127.0.0.1/localhost
+      # for the in-process fake store (the tests set this themselves too;
+      # this is defense in depth).
+      export NO_PROXY="127.0.0.1,localhost,${NO_PROXY}"
+      export no_proxy="127.0.0.1,localhost,${no_proxy}"
       cargo test --release --lib --test integration --test isolate_http
       cargo build --release
 

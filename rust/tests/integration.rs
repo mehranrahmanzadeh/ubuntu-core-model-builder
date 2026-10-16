@@ -14,6 +14,31 @@ const ROOT_MACAROON: &str = "MDAyY2xvY2F0aW9uIGh0dHBzOi8vZGFzaGJvYXJkLnNuYXBjcmF
 /// An unsigned v1 binary discharge macaroon.
 const DISCHARGE_MACAROON: &str = "MDAyNmxvY2F0aW9uIGh0dHBzOi8vbG9naW4udWJ1bnR1LmNvbQowMDFiaWRlbnRpZmllciBkaXNjaGFyZ2UtMQowMDBmc2lnbmF0dXJlIAo";
 
+/// reqwest's default client honors `HTTP_PROXY`/`http_proxy` for ALL
+/// requests, *including loopback*, unless `NO_PROXY` exempts the host.
+/// Launchpad build containers run behind a firewall proxy, so without this
+/// the tests' traffic to the in-process fake store (127.0.0.1) would be
+/// routed to the proxy, which answers with a 403 (Squid refuses to proxy
+/// to localhost). Always exempt the loopback addresses.
+fn exempt_loopback_from_proxy() {
+    let existing = std::env::var("NO_PROXY")
+        .ok()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_default();
+    let mut parts: Vec<&str> =
+        existing.split(',').map(|s| s.trim()).filter(|s| !s.is_empty()).collect();
+    for h in ["127.0.0.1", "localhost", "::1"] {
+        if !parts.iter().any(|e| *e == h) {
+            parts.push(h);
+        }
+    }
+    let val = parts.join(",");
+    if !val.is_empty() {
+        std::env::set_var("NO_PROXY", &val);
+        std::env::set_var("no_proxy", &val);
+    }
+}
+
 /// Start a tiny HTTP server emulating store + SSO.
 ///
 /// * `two_factor`: when true, the first discharge (no otp) returns the
@@ -24,6 +49,10 @@ const DISCHARGE_MACAROON: &str = "MDAyNmxvY2F0aW9uIGh0dHBzOi8vbG9naW4udWJ1bnR1Lm
 /// * Returns (store_url, login_url, port).
 async fn start_fake_store(two_factor: bool, password: &str) -> (String, String, u16) {
     use tokio::net::TcpListener;
+
+    // Must run before any reqwest client is created (the AuthRuntime builds
+    // its client in `spawn`, which every test does after this helper).
+    exempt_loopback_from_proxy();
 
     let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
     let port = listener.local_addr().expect("addr").port();

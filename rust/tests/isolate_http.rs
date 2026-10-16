@@ -4,8 +4,34 @@ use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::thread;
 
+/// reqwest's default client routes ALL requests through HTTP_PROXY (even
+/// loopback) unless NO_PROXY exempts them — Launchpad build containers run
+/// behind a firewall proxy, so the test's 127.0.0.1 traffic would 403
+/// there. Always exempt the loopback addresses (same guard as the
+/// integration tests).
+fn exempt_loopback_from_proxy() {
+    let existing = std::env::var("NO_PROXY")
+        .ok()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_default();
+    let mut parts: Vec<&str> =
+        existing.split(',').map(|s| s.trim()).filter(|s| !s.is_empty()).collect();
+    for h in ["127.0.0.1", "localhost", "::1"] {
+        if !parts.iter().any(|e| *e == h) {
+            parts.push(h);
+        }
+    }
+    let val = parts.join(",");
+    if !val.is_empty() {
+        std::env::set_var("NO_PROXY", &val);
+        std::env::set_var("no_proxy", &val);
+    }
+}
+
 #[test]
 fn runtime_http_reaches_local_server() {
+    exempt_loopback_from_proxy();
+
     let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
     let addr = listener.local_addr().expect("addr");
     let server = thread::spawn(move || {
