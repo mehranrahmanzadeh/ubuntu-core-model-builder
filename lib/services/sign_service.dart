@@ -15,6 +15,12 @@ class SignResult {
 /// Signs model assertions with `snap sign` (snapd), feeding the JSON
 /// header on stdin and validating the signed assertion output.
 class SignService {
+  /// The executable used to sign. Defaults to `snap` (snapd); overridable
+  /// in tests to point at a stub.
+  final String snapExecutable;
+
+  SignService({this.snapExecutable = 'snap'});
+
   Future<SignResult> signModel(
     ModelAssertion model,
     String keyName, {
@@ -29,7 +35,7 @@ class SignService {
     final Process process;
     try {
       process = await Process.start(
-        'snap',
+        snapExecutable,
         ['sign', '-k', keyName],
         environment: HostEnv.sanitized,
         includeParentEnvironment: false,
