@@ -127,6 +127,7 @@ parts:
       - ca-certificates
     override-build: |
       set -ex
+      set +u
       export RUSTUP_HOME="$CRAFT_PART_BUILD/.rustup"
       export CARGO_HOME="$CRAFT_PART_BUILD/.cargo"
       curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs           | sh -s -- -y --profile minimal --default-toolchain stable
