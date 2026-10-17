@@ -3,7 +3,14 @@ import 'dart:io';
 import '../models/store_snap.dart';
 
 class SnapdService {
-  static const _socketPath = '/run/snapd.socket';
+  /// The snapd unix socket the store queries are sent over. Injectable in
+  /// tests (which bind a mock socket); defaults to the real snapd socket.
+  static const defaultSocketPath = '/run/snapd.socket';
+
+  final String _socketPath;
+
+  SnapdService({String socketPath = defaultSocketPath})
+      : _socketPath = socketPath;
 
   Future<List<StoreSnap>> findSnaps(String query) async {
     final q = query.trim();

@@ -2,54 +2,107 @@ import 'dart:io';
 
 import 'host_env.dart';
 
+/// A terminal emulator candidate and how to launch it.
+///
+/// [execArgs] are always passed (how to pass the command to the terminal);
+/// [waitArgs] are passed only when the caller wants to block until the
+/// command finishes.
+class Term {
+  final String command;
+  final List<String> execArgs;
+  final List<String> waitArgs;
+  const Term(this.command,
+      {required this.execArgs, this.waitArgs = const <String>[]});
+}
+
+const _defaultTerminals = <Term>[
+  Term('gnome-terminal', execArgs: ['--'], waitArgs: ['--wait']),
+  Term('ptyxis', execArgs: ['--'], waitArgs: ['--wait']),
+  Term('konsole', execArgs: ['-e']),
+  Term('tilix', execArgs: ['-e']),
+  Term('xfce4-terminal', execArgs: ['-x']),
+  Term('alacritty', execArgs: <String>[]),
+  Term('kitty', execArgs: <String>[]),
+  Term('xterm', execArgs: ['-e']),
+];
+
 /// Runs a shell command inside a terminal emulator so interactive prompts
 /// (passphrases, 2FA) have a real tty. Shared by login and key operations.
+///
+/// The [which] lookup and the terminal [candidates] are injectable so the
+/// argv construction and the no-terminal path can be tested hermetically;
+/// the defaults probe the real host.
 class TerminalRunner {
-  static Future<Process> run(String command, {bool wait = false}) async {
-    final term = await _findTerminal();
-    if (term == null) throw NoTerminalException();
+  final Future<String?> Function(String cmd) which;
+  final List<Term> candidates;
 
+  TerminalRunner({
+    Future<String?> Function(String cmd)? which,
+    List<Term>? candidates,
+  })  : which = which ?? _defaultWhich,
+        candidates = candidates ?? _defaultTerminals;
+
+  static final TerminalRunner _instance = TerminalRunner();
+
+  /// Static entry point (used by the app) backed by a default instance.
+  static Future<int> runToCompletion(String command, {bool wait = true}) =>
+      _instance.runToEnd(command, wait: wait);
+
+  /// Pure argv construction: the executable to spawn and its argument list
+  /// for [term] running [command], honouring [wait] and whether to wrap the
+  /// whole invocation in `setsid`.
+  static (String, List<String>) buildLaunchArgs(
+    Term term,
+    String command, {
+    required bool wait,
+    required bool useSetsid,
+  }) {
     final waitArgs = wait ? term.waitArgs : const <String>[];
-    final launchArgs = [
+    final launchArgs = <String>[
       ...waitArgs,
       ...term.execArgs,
       'sh',
       '-c',
       command,
     ];
-
-    final hasSetsid = await _which('setsid') != null;
-    final env = HostEnv.sanitized;
-
-    if (hasSetsid) {
-      return Process.start(
-        'setsid',
-        [term.command, ...launchArgs],
-        mode: ProcessStartMode.normal,
-        environment: env,
-        includeParentEnvironment: false,
-      );
+    if (useSetsid) {
+      return ('setsid', [term.command, ...launchArgs]);
     }
-    return Process.start(
-      term.command,
-      launchArgs,
-      mode: ProcessStartMode.normal,
-      environment: env,
-      includeParentEnvironment: false,
-    );
+    return (term.command, launchArgs);
   }
 
-  static Future<int> runToCompletion(
-    String command, {
-    bool wait = true,
-  }) async {
-    final proc = await run(command, wait: wait);
+  /// Returns the first candidate terminal whose binary is found, or `null`.
+  Future<Term?> findTerminal() async {
+    for (final c in candidates) {
+      final p = await which(c.command);
+      if (p != null) return c;
+    }
+    return null;
+  }
+
+  Future<Process> start(String command, {bool wait = false}) async {
+    final term = await findTerminal();
+    if (term == null) throw NoTerminalException();
+
+    final useSetsid = await which('setsid') != null;
+    final (exe, args) =
+        buildLaunchArgs(term, command, wait: wait, useSetsid: useSetsid);
+    final env = HostEnv.sanitized;
+
+    return Process.start(exe, args,
+        mode: ProcessStartMode.normal,
+        environment: env,
+        includeParentEnvironment: false);
+  }
+
+  Future<int> runToEnd(String command, {bool wait = true}) async {
+    final proc = await start(command, wait: wait);
     proc.stdout.drain<void>();
     proc.stderr.drain<void>();
     return proc.exitCode;
   }
 
-  static Future<String?> _which(String cmd) async {
+  static Future<String?> _defaultWhich(String cmd) async {
     // `which` itself is a host binary; run it with a sanitized environment.
     final r = await Process.run(
       'which',
@@ -61,35 +114,6 @@ class TerminalRunner {
     final out = (r.stdout as String).trim();
     return out.isEmpty ? null : out;
   }
-
-  static Future<_Term?> _findTerminal() async {
-    Future<bool> exists(String c) async => (await _which(c)) != null;
-    final candidates = <_Term>[
-      _Term('gnome-terminal', execArgs: ['--'], waitArgs: ['--wait']),
-      _Term('ptyxis', execArgs: ['--'], waitArgs: ['--wait']),
-      _Term('konsole', execArgs: ['-e']),
-      _Term('tilix', execArgs: ['-e']),
-      _Term('xfce4-terminal', execArgs: ['-x']),
-      _Term('alacritty', execArgs: ['-e']),
-      _Term('kitty', execArgs: <String>[]),
-      _Term('xterm', execArgs: ['-e']),
-    ];
-    for (final c in candidates) {
-      if (await exists(c.command)) return c;
-    }
-    return null;
-  }
-}
-
-class _Term {
-  final String command;
-  final List<String> execArgs;
-  final List<String> waitArgs;
-  _Term(
-    this.command, {
-    required this.execArgs,
-    this.waitArgs = const <String>[],
-  });
 }
 
 class NoTerminalException implements Exception {
