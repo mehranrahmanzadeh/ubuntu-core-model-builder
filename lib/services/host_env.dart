@@ -13,6 +13,14 @@ import 'dart:io';
 class HostEnv {
   HostEnv._();
 
+  /// The single source of truth for which environment variables are stripped
+  /// so host tools load their own libraries rather than the snap's bundled
+  /// (patchelf'd) ones.
+  ///
+  /// TEST CONTRACT (see `test/host_env_test.dart`): that file asserts exactly
+  /// this set of keys is removed and that unrelated keys survive. If you add
+  /// or remove an entry here, update `kStripKeys` in the test to match, or
+  /// the suite will fail.
   static const _stripKeys = <String>[
     'LD_LIBRARY_PATH',
     'GTK_PATH',
@@ -28,6 +36,14 @@ class HostEnv {
   /// Factored out of [sanitized] so the stripping behaviour can be tested
   /// hermetically against a controlled environment (Platform.environment
   /// itself cannot be overridden in tests).
+  ///
+  /// TEST CONTRACT (see `test/host_env_test.dart`): this method must
+  ///   * remove every key in [_stripKeys] from the returned copy;
+  ///   * preserve every other key (exact-name match only — `GTK_PATHX` and
+  ///     `LD_LIBRARY_PATH_EXTRA` must NOT be stripped); and
+  ///   * NOT mutate [base] (it operates on a copy).
+  /// Keep [sanitized] delegating here so the real-environment path is the
+  /// same code under test.
   static Map<String, String> sanitizedFrom(Map<String, String> base) {
     final env = Map<String, String>.from(base);
     for (final k in _stripKeys) {

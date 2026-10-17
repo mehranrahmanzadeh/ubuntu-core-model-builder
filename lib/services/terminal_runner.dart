@@ -32,6 +32,17 @@ const _defaultTerminals = <Term>[
 /// The [which] lookup and the terminal [candidates] are injectable so the
 /// argv construction and the no-terminal path can be tested hermetically;
 /// the defaults probe the real host.
+///
+/// TEST CONTRACT (see `test/terminal_runner_test.dart`):
+///   * [buildLaunchArgs] is a pure function and its exact output is asserted
+///     (wait-arg prefix, exec-args, `sh -c <command>` tail, and the `setsid`
+///     wrap). Do not change its argument ordering or the `sh -c` shape
+///     without updating those tests.
+///   * [findTerminal] returns the FIRST candidate for which [which] is
+///     non-null, and `null` when none are found; [start]/[runToEnd] then
+///     throw [NoTerminalException] when the result is `null`.
+/// The actual terminal spawn (Process.start of a real emulator) is NOT
+/// tested — it needs a display.
 class TerminalRunner {
   final Future<String?> Function(String cmd) which;
   final List<Term> candidates;
@@ -51,6 +62,17 @@ class TerminalRunner {
   /// Pure argv construction: the executable to spawn and its argument list
   /// for [term] running [command], honouring [wait] and whether to wrap the
   /// whole invocation in `setsid`.
+  ///
+  /// Returns `(executable, args)`:
+  ///   * without setsid -> `(term.command, [...waitArgs?, ...execArgs, 'sh',
+  ///     '-c', command])`
+  ///   * with setsid -> `('setsid', [term.command, ...waitArgs?, ...execArgs,
+  ///     'sh', '-c', command])`
+  ///
+  /// TEST CONTRACT (see `test/terminal_runner_test.dart`): the tests pin
+  /// these exact argv lists. Keep the `waitArgs`-before-`execArgs`-before-
+  /// `sh -c <command>` ordering and the `setsid` wrapping stable; changing
+  /// either requires updating the tests.
   static (String, List<String>) buildLaunchArgs(
     Term term,
     String command, {

@@ -5,6 +5,11 @@ import '../models/store_snap.dart';
 class SnapdService {
   /// The snapd unix socket the store queries are sent over. Injectable in
   /// tests (which bind a mock socket); defaults to the real snapd socket.
+  ///
+  /// TEST CONTRACT (see `test/snapd_service_test.dart`): the tests construct
+  /// `SnapdService(socketPath: <temp mock socket>)`, so the socket path MUST
+  /// remain a constructor parameter (defaulting to this constant). Do not
+  /// hard-code the socket back into the request path.
   static const defaultSocketPath = '/run/snapd.socket';
 
   final String _socketPath;
@@ -127,6 +132,19 @@ class SnapdService {
   /// Performs an HTTP/1.1 request over the snapd unix socket and returns the
   /// decoded JSON body. Reads at the byte level and handles both
   /// Content-Length and chunked transfer encodings correctly.
+  ///
+  /// WIRE CONTRACT (pinned by `test/snapd_service_test.dart`, which feeds
+  /// canned responses through a mock unix socket):
+  ///   * Sends `GET <path> HTTP/1.1` with a `Connection: close` header and
+  ///     reads the whole response until the socket closes.
+  ///   * Splits headers from body at the first `\r\n\r\n`; a missing
+  ///     separator throws a `FormatException`.
+  ///   * Decodes the body as plain bytes (Content-Length) or reassembles
+  ///     chunks (`_dechunk`) when `Transfer-Encoding: chunked` is present.
+  ///   * The body must decode to a JSON object (a `Map<String, dynamic>`);
+  ///     otherwise a `FormatException` is thrown.
+  /// If you change the request format, header handling, or the
+  /// Content-Length/chunked decoding, update those tests to match.
   Future<Map<String, dynamic>> _request(String method, String path) async {
     final socket = await Socket.connect(
       InternetAddress(_socketPath, type: InternetAddressType.unix),
