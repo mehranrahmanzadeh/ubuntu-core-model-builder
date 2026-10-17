@@ -23,13 +23,21 @@ class HostEnv {
     'LD_PRELOAD',
   ];
 
-  /// A copy of the current environment with snap-bundled library paths
-  /// removed, suitable for `Process.start`/`Process.run` `environment:`.
-  static Map<String, String> get sanitized {
-    final env = Map<String, String>.from(Platform.environment);
+  /// A copy of [base] with the snap-bundled library-path variables removed.
+  ///
+  /// Factored out of [sanitized] so the stripping behaviour can be tested
+  /// hermetically against a controlled environment (Platform.environment
+  /// itself cannot be overridden in tests).
+  static Map<String, String> sanitizedFrom(Map<String, String> base) {
+    final env = Map<String, String>.from(base);
     for (final k in _stripKeys) {
       env.remove(k);
     }
     return env;
   }
+
+  /// A copy of the current environment with snap-bundled library paths
+  /// removed, suitable for `Process.start`/`Process.run` `environment:`.
+  static Map<String, String> get sanitized =>
+      sanitizedFrom(Platform.environment);
 }
