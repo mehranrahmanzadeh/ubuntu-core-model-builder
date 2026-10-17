@@ -27,3 +27,6 @@ prime/
 
 # Rust auth backend (rust/) -- local build artifacts
 rust/target/
+
+# Local review diffs (generated per test step; not part of the app)
+*.diff
