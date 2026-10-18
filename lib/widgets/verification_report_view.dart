@@ -27,7 +27,7 @@ class VerificationReportView extends StatelessWidget {
       ),
       child: Column(
         children: [
-          ...report.checks.map((c) => YaruTile(
+          ...report.checks.map((c) => YaruListTile(
                 leading: _statusIcon(c.status),
                 title: Text(c.label),
                 subtitle: Text(c.detail, style: theme.textTheme.bodySmall),
@@ -81,7 +81,7 @@ class VerificationReportView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(

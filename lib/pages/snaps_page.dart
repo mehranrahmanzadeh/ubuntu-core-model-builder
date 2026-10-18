@@ -944,7 +944,7 @@ class _SnapsPageState extends State<SnapsPage> {
       if (isDependentBase) presenceLabel += ' (auto)';
     }
 
-    return YaruTile(
+    return YaruListTile(
       leading: _typeChip(context, s.type),
       title: Row(
         children: [
@@ -993,7 +993,7 @@ class _SnapsPageState extends State<SnapsPage> {
         color: color,
       ),
       label: Text(label),
-      side: BorderSide(color: color.withOpacity(0.4)),
+      side: BorderSide(color: color.withValues(alpha: 0.4)),
     );
   }
 
@@ -1001,7 +1001,7 @@ class _SnapsPageState extends State<SnapsPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -1152,7 +1152,7 @@ class _ComponentEditorDialogState extends State<_ComponentEditorDialog> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedToAdd,
+                      initialValue: _selectedToAdd,
                       isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Available component',

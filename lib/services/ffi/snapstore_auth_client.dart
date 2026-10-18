@@ -123,7 +123,7 @@ final DynamicLibrary snapstoreAuthLibrary = () {
   ];
   for (final String dir in <String>['.', exeDir, '/usr/local/lib', '/usr/lib']) {
     for (final String n in names) {
-      final String p = dir.endsWith('/') ? '${dir}$n' : '$dir/$n';
+      final String p = dir.endsWith('/') ? '$dir$n' : '$dir/$n';
       try {
         if (File(p).existsSync()) {
           return DynamicLibrary.open(p);

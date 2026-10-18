@@ -267,11 +267,13 @@ class _KeyTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final tile = YaruTile(
-      leading: Radio<bool>(
-        value: true,
+    final tile = YaruListTile(
+      leading: RadioGroup<bool>(
         groupValue: selected ? true : null,
-        onChanged: signingKey.registered ? (_) => onSelect() : null,
+        onChanged: (v) {
+          if (v == true) onSelect();
+        },
+        child: Radio<bool>(value: true, enabled: signingKey.registered),
       ),
       title: Row(
         children: [
@@ -313,7 +315,7 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(

@@ -462,7 +462,8 @@ Future<bool> _showCredentialsDialog(
                 // `false` — that must not pop the dialog.
                 if (w != watcher) return;
                 completed = true;
-                if (Navigator.of(dialogContext).canPop()) {
+                if (dialogContext.mounted &&
+                    Navigator.of(dialogContext).canPop()) {
                   Navigator.of(dialogContext).pop(ok);
                 }
               });
@@ -600,7 +601,8 @@ Future<bool> _showTwoFactorDialog(
                 // `false` — that must not pop the dialog.
                 if (w != watcher) return;
                 completed = true;
-                if (Navigator.of(dialogContext).canPop()) {
+                if (dialogContext.mounted &&
+                    Navigator.of(dialogContext).canPop()) {
                   Navigator.of(dialogContext).pop(ok);
                 }
               });

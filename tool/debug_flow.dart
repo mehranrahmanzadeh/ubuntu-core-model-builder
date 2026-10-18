@@ -1,5 +1,4 @@
 // Debug: exercise the full flow and print actual errors.
-import 'dart:io';
 import 'dart:isolate';
 import 'package:ubuntu_core_model_builder/services/ffi/snapstore_auth_client.dart';
 import 'package:ubuntu_core_model_builder/services/rust_store_service.dart';

@@ -110,6 +110,7 @@ class _MetadataPageState extends State<MetadataPage> {
       await _ensureBaseSnap(newBase, arch);
       await _checkGadgetBase(newBase, arch);
     } catch (e) {
+      if (!mounted) return;
       _error(context, 'Could not update base: $e');
     } finally {
       state.busy = false;
@@ -282,8 +283,10 @@ class _MetadataPageState extends State<MetadataPage> {
         );
       }
     } on ModelImportException catch (e) {
+      if (!context.mounted) return;
       _error(context, e.message);
     } catch (e) {
+      if (!context.mounted) return;
       _error(context, 'Import failed: $e');
     } finally {
       state.busy = false;
@@ -416,6 +419,7 @@ class _MetadataPageState extends State<MetadataPage> {
       await _showStorePicker(context, cached);
       return;
     }
+    if (!context.mounted) return;
     await _queryAndShowStores(context);
   }
 
@@ -427,6 +431,7 @@ class _MetadataPageState extends State<MetadataPage> {
       try {
         stores = await surl.listStores();
       } on SurlAuthException {
+        if (!context.mounted) rethrow;
         state.setBusy(true, message: 'Signing you in to the store...');
         await surl.webLogin(context: context);
         state.setBusy(true, message: 'Fetching your stores...');
@@ -436,10 +441,13 @@ class _MetadataPageState extends State<MetadataPage> {
       if (!context.mounted) return;
       await _showStorePicker(context, stores);
     } on SurlUnavailableException catch (e) {
+      if (!context.mounted) return;
       _error(context, 'Store lookup is unavailable: $e.');
     } on SurlAuthException catch (e) {
+      if (!context.mounted) return;
       _error(context, 'Store login failed: $e');
     } catch (e) {
+      if (!context.mounted) return;
       _error(context, 'Could not fetch stores: $e');
     } finally {
       state.busy = false;
@@ -605,7 +613,7 @@ class _MetadataPageState extends State<MetadataPage> {
             child: Column(
               children: [
                 DropdownButtonFormField<ModelArchitecture>(
-                  value: model.architecture,
+                  initialValue: model.architecture,
                   decoration: const InputDecoration(labelText: 'Architecture'),
                   items: ModelArchitecture.values
                       .map((a) =>
@@ -618,7 +626,7 @@ class _MetadataPageState extends State<MetadataPage> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: const ['core22', 'core24', 'core26']
+                  initialValue: const ['core22', 'core24', 'core26']
                           .contains(model.base)
                       ? model.base
                       : null,

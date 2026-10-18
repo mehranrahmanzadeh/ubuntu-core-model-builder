@@ -1,5 +1,4 @@
 import '../models/model_assertion.dart';
-import '../models/snap_entry.dart';
 import 'store_api_service.dart';
 
 class SeedSizeLine {

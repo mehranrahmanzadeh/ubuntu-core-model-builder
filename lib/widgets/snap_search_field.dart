@@ -304,7 +304,7 @@ class _SnapSearchFieldState extends State<SnapSearchField> {
             SizedBox(
               width: 190,
               child: DropdownButtonFormField<String>(
-                value: channelValue,
+                initialValue: channelValue,
                 isExpanded: true,
                 decoration: InputDecoration(
                   labelText: 'Channel',
@@ -333,7 +333,7 @@ class _SnapSearchFieldState extends State<SnapSearchField> {
             SizedBox(
               width: 150,
               child: DropdownButtonFormField<SnapType>(
-                value: _selected == null ? null : _type,
+                initialValue: _selected == null ? null : _type,
                 isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Type',
@@ -473,7 +473,7 @@ class _SnapSearchFieldState extends State<SnapSearchField> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(type, style: const TextStyle(fontSize: 10)),

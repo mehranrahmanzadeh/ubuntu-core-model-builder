@@ -168,26 +168,29 @@ class _ExtrasPageState extends State<ExtrasPage> {
                       ),
                 ),
                 const SizedBox(height: 16),
-                RadioListTile<SystemUserAuthorityMode>(
-                  contentPadding: EdgeInsets.zero,
-                  value: SystemUserAuthorityMode.brandOnly,
+                RadioGroup<SystemUserAuthorityMode>(
                   groupValue: mode,
-                  onChanged: (v) => _setMode(v!),
-                  title: const Text('Brand only (default)'),
-                  subtitle: const Text(
-                      'Only your brand account can sign system-user '
-                      'assertions. Nothing is added to the model.'),
-                ),
-                RadioListTile<SystemUserAuthorityMode>(
-                  contentPadding: EdgeInsets.zero,
-                  value: SystemUserAuthorityMode.specificIds,
-                  groupValue: mode,
-                  onChanged: (v) => _setMode(v!),
-                  title: const Text('Specific account IDs'),
-                  subtitle: const Text(
-                      'Allow one or more account IDs to sign system-user '
-                      'assertions for this device.'),
-                ),
+                  onChanged: (v) {
+                    if (v != null) _setMode(v);
+                  },
+                  child: Column(
+                    children: [
+                  const RadioListTile<SystemUserAuthorityMode>(
+                    contentPadding: EdgeInsets.zero,
+                    value: SystemUserAuthorityMode.brandOnly,
+                    title: Text('Brand only (default)'),
+                    subtitle: Text(
+                        'Only your brand account can sign system-user '
+                        'assertions. Nothing is added to the model.'),
+                  ),
+                  const RadioListTile<SystemUserAuthorityMode>(
+                    contentPadding: EdgeInsets.zero,
+                    value: SystemUserAuthorityMode.specificIds,
+                    title: Text('Specific account IDs'),
+                    subtitle: Text(
+                        'Allow one or more account IDs to sign system-user '
+                        'assertions for this device.'),
+                  ),
                 if (mode == SystemUserAuthorityMode.specificIds)
                   Padding(
                     padding: const EdgeInsets.only(left: 32, top: 4, bottom: 8),
@@ -206,15 +209,16 @@ class _ExtrasPageState extends State<ExtrasPage> {
                       ],
                     ),
                   ),
-                RadioListTile<SystemUserAuthorityMode>(
-                  contentPadding: EdgeInsets.zero,
-                  value: SystemUserAuthorityMode.anyone,
-                  groupValue: mode,
-                  onChanged: (v) => _setMode(v!),
-                  title: const Text('Anyone'),
-                  subtitle: const Text(
-                      'Any account may sign system-user assertions (uses "*").'),
-                ),
+                  const RadioListTile<SystemUserAuthorityMode>(
+                    contentPadding: EdgeInsets.zero,
+                    value: SystemUserAuthorityMode.anyone,
+                    title: Text('Anyone'),
+                    subtitle: Text(
+                        'Any account may sign system-user assertions (uses "*").'),
+                  ),
+                ],
+              ),
+            ),
                 if (mode == SystemUserAuthorityMode.anyone)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
@@ -224,7 +228,7 @@ class _ExtrasPageState extends State<ExtrasPage> {
                         color: Theme.of(context)
                             .colorScheme
                             .errorContainer
-                            .withOpacity(0.5),
+                            .withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -351,7 +355,7 @@ class _ExtrasPageState extends State<ExtrasPage> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<StorageSafety>(
-              value: model.storageSafety,
+              initialValue: model.storageSafety,
               decoration: const InputDecoration(labelText: 'storage-safety'),
               items: const [
                 DropdownMenuItem(
@@ -416,7 +420,7 @@ class _ExtrasPageState extends State<ExtrasPage> {
                   color: Theme.of(context)
                       .colorScheme
                       .primaryContainer
-                      .withOpacity(0.4),
+                      .withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -542,7 +546,7 @@ class _ExtrasPageState extends State<ExtrasPage> {
               SizedBox(
                 width: 200,
                 child: DropdownButtonFormField<String>(
-                  value: v.mode,
+                  initialValue: v.mode,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Mode',

@@ -115,7 +115,7 @@ class AccountPage extends StatelessWidget {
           headline: const Text('Required Tools'),
           child: Column(
             children: [
-              YaruTile(
+              YaruListTile(
                 leading: Icon(
                   (tools?.hasSnap ?? false)
                       ? Icons.check_circle
@@ -127,7 +127,7 @@ class AccountPage extends StatelessWidget {
                 title: const Text('snap'),
                 subtitle: Text(tools?.snapPath ?? 'Not found'),
               ),
-              YaruTile(
+              YaruListTile(
                 leading: Icon(
                   (tools?.hasPinentry ?? false)
                       ? Icons.check_circle
@@ -148,7 +148,7 @@ class AccountPage extends StatelessWidget {
         YaruSection(
           headline: const Text('Snap Store Account'),
           child: account == null
-              ? YaruTile(
+              ? YaruListTile(
                   title: const Text('Not signed in'),
                   subtitle: const Text(
                       'Sign in to auto-fill your brand and authority ID.'),
@@ -173,13 +173,13 @@ class AccountPage extends StatelessWidget {
                 )
               : Column(
                   children: [
-                    YaruTile(
+                    YaruListTile(
                       leading: const Icon(Icons.account_circle),
                       title: Text(account.email),
                       subtitle: Text('Account ID: ${account.accountId}'),
                     ),
                     if (account.username != null)
-                      YaruTile(
+                      YaruListTile(
                         leading: const Icon(Icons.badge_outlined),
                         title: const Text('Username'),
                         subtitle: Text(account.username!),
