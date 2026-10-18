@@ -198,35 +198,118 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  /// Rail width for each state. The rail is a self-sizing child of a [Row]
+  /// (unbounded width), so we pin it to an explicit animated width. That also
+  /// gives the brand header and bottom toggle a definite width to fill, which
+  /// is how they stay flush-left (the rail otherwise centers its pinned items).
+  static const double _railExtendedWidth = 248;
+  static const double _railCollapsedWidth = 84;
+
   Widget _buildNavigationRail() {
-    return NavigationRail(
-      extended: _extendedRail,
-      minExtendedWidth: 220,
-      selectedIndex: _current.index,
-      onDestinationSelected: (i) => _goTo(WizardStep.values[i]),
-      leading: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: IconButton(
-          icon: Icon(_extendedRail ? Icons.menu_open : Icons.menu),
-          tooltip: _extendedRail ? 'Collapse' : 'Expand',
-          onPressed: () => setState(() => _extendedRail = !_extendedRail),
-        ),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      width: _extendedRail ? _railExtendedWidth : _railCollapsedWidth,
+      child: NavigationRail(
+        extended: _extendedRail,
+        // Guard against short windows: pin the brand header and the toggle,
+        // and let the destination list scroll if it doesn't all fit, instead
+        // of overflowing the rail vertically.
+        scrollable: true,
+        minWidth: _railCollapsedWidth,
+        minExtendedWidth: _railExtendedWidth,
+        selectedIndex: _current.index,
+        onDestinationSelected: (i) => _goTo(WizardStep.values[i]),
+        leading: _buildBrandHeader(),
+        destinations: WizardStep.values.map((step) {
+          final complete = _state.showStepComplete(step);
+          final enabled = _state.isStepEnabled(step);
+          return NavigationRailDestination(
+            disabled: !enabled,
+            icon:
+                _StepIcon(icon: step.icon, complete: complete, enabled: enabled),
+            selectedIcon: _StepIcon(
+              icon: step.selectedIcon,
+              complete: complete,
+              enabled: enabled,
+              selected: true,
+            ),
+            label: Text(step.label),
+          );
+        }).toList(),
       ),
-      destinations: WizardStep.values.map((step) {
-        final complete = _state.showStepComplete(step);
-        final enabled = _state.isStepEnabled(step);
-        return NavigationRailDestination(
-          disabled: !enabled,
-          icon: _StepIcon(icon: step.icon, complete: complete, enabled: enabled),
-          selectedIcon: _StepIcon(
-            icon: step.selectedIcon,
-            complete: complete,
-            enabled: enabled,
-            selected: true,
-          ),
-          label: Text(step.label),
+    );
+  }
+
+  /// Brand header pinned to the top of the rail. A full-width [Row] so it
+  /// left-aligns (the rail centers its pinned children), with the app mark
+  /// first and the app name beside it when extended; just the mark when
+  /// collapsed.
+  /// Rail width at which the header shows the app name. The collapsed rail is
+  /// 84px; the title is only rendered once the rail has widened past this, so
+  /// the header's minimum width always fits the current rail width and it never
+  /// overflows during the collapse/expand animation.
+  static const double _headerWideWidth = 100;
+
+  /// Brand header pinned to the top of the rail: the app mark (and, once the
+  /// rail is wide enough, the app name) left-aligned, the collapse/expand
+  /// caret right-aligned in the same row, and a light separator under the
+  /// caption. The header sizes off the *actual* rail width via [LayoutBuilder]
+  /// so it stays in sync with the animated sidebar.
+  Widget _buildBrandHeader() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= _headerWideWidth;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 10, right: 6, top: 8, bottom: 8),
+              child: Row(
+                children: [
+                  _buildAppMark(size: 30),
+                  if (wide) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Model Builder',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ] else
+                    const Spacer(),
+                  IconButton(
+                    icon: Icon(_extendedRail
+                        ? Icons.chevron_left
+                        : Icons.chevron_right),
+                    tooltip: _extendedRail ? 'Collapse' : 'Expand',
+                    onPressed: () =>
+                        setState(() => _extendedRail = !_extendedRail),
+                    iconSize: 18,
+                    constraints:
+                        const BoxConstraints(minWidth: 28, minHeight: 28),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+            ),
+            if (wide)
+              Container(height: 1, color: Theme.of(context).dividerColor),
+          ],
         );
-      }).toList(),
+      },
+    );
+  }
+
+  /// The app mark: the snap's launcher icon, rounded like a Yaru app tile.
+  Widget _buildAppMark({required double size}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(size * 0.22),
+      child: Image.asset('assets/icon.png', width: size, height: size),
     );
   }
 

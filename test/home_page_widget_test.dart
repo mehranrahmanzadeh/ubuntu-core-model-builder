@@ -78,8 +78,9 @@ void main() {
       (tester) async {
     await pumpApp(tester);
 
-    // App bar + step headline.
-    expect(find.text('Model Builder'), findsOneWidget);
+    // App bar + step headline. 'Model Builder' appears twice: the app bar
+    // title and the sidebar brand header (both are intentional).
+    expect(find.text('Model Builder'), findsNWidgets(2));
     expect(find.text('Getting Started'), findsOneWidget);
 
     // Required tools section. snapd is required; pinentry is recommended.
