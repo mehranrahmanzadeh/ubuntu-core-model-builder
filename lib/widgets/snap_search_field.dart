@@ -269,9 +269,11 @@ class _SnapSearchFieldState extends State<SnapSearchField> {
                 decoration: InputDecoration(
                   labelText: label,
                   prefixIcon: const Icon(Icons.search),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                   suffixIcon: _searching
                       ? const Padding(
-                          padding: EdgeInsets.all(12),
+                          padding: EdgeInsets.all(10),
                           child: SizedBox(
                             width: 16,
                             height: 16,
@@ -306,6 +308,8 @@ class _SnapSearchFieldState extends State<SnapSearchField> {
                 isExpanded: true,
                 decoration: InputDecoration(
                   labelText: 'Channel',
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                   suffixIcon: _loadingChannels
                       ? const Padding(
                           padding: EdgeInsets.all(10),
@@ -331,7 +335,11 @@ class _SnapSearchFieldState extends State<SnapSearchField> {
               child: DropdownButtonFormField<SnapType>(
                 value: _selected == null ? null : _type,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Type'),
+                decoration: const InputDecoration(
+                  labelText: 'Type',
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                ),
                 icon: const SizedBox.shrink(),
                 disabledHint: Text(
                   _selected == null ? '-' : _type.name,
@@ -348,19 +356,23 @@ class _SnapSearchFieldState extends State<SnapSearchField> {
               ),
             ),
             const SizedBox(width: 12),
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
+            SizedBox(
+              width: 90,
               child: ElevatedButton.icon(
                 onPressed: (_selected == null || _channel == null || _adding)
                     ? null
                     : _add,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
                 icon: _adding
                     ? const SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.add),
+                    : const Icon(Icons.add, size: 14),
                 label: const Text('Add'),
               ),
             ),
