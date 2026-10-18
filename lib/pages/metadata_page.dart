@@ -696,7 +696,7 @@ class _MetadataPageState extends State<MetadataPage> {
           ),
         const SizedBox(width: 4),
         Padding(
-          padding: const EdgeInsets.only(top: 8),
+          padding: const EdgeInsets.only(top: 0),
           child: OutlinedButton.icon(
             onPressed: () => _fetchStores(context),
             icon: const Icon(Icons.cloud_download_outlined),

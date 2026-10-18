@@ -439,7 +439,7 @@ class _SnapSearchFieldState extends State<SnapSearchField> {
                 ),
                 const SizedBox(width: 8),
                 Padding(
-                  padding: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.only(top: 0),
                   child: _resolvingManual
                       ? const SizedBox(
                           width: 20,
@@ -452,7 +452,7 @@ class _SnapSearchFieldState extends State<SnapSearchField> {
                         ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.only(top: 0),
                   child: IconButton(
                     icon: const Icon(Icons.close),
                     tooltip: 'Cancel',
