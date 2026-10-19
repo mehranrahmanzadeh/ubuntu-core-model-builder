@@ -11,19 +11,30 @@
 //     (host GPG keyring, unchanged) uploaded through the Rust `registerKey`
 //     FFI (`POST /dev/api/account/account-key`), replacing
 //     `snapcraft register-key` and its terminal;
-//   * `createKey()` — unchanged (`snap create-key` needs a tty for the
-//     passphrase prompt).
+//   * `createKey()` — drives `gpg --gen-key` directly (see
+//     [GpgKeyGenerator]) instead of `snap create-key` (which reads the
+//     passphrase from a terminal, hence its terminal window): the passphrase
+//     is entered in the system pinentry dialog — the same popup `snap sign`
+//     uses — and the key lands in the very keyring (~/.snap/gnupg) that
+//     `snap keys` / `export-key` / `sign` use.
 import 'dart:io';
 import 'dart:isolate';
 
 import 'package:process_run/process_run.dart';
 
 import 'ffi/snapstore_auth_client.dart';
+import 'gpg_key_generator.dart';
 import '../models/signing_key.dart';
 import 'host_env.dart';
-import 'terminal_runner.dart';
 
 class RustKeyService {
+  /// Backs [createKey]/[createAndRegister]. Defaults to the real
+  /// generator; injectable in tests.
+  final GpgKeyGenerator keyGenerator;
+
+  RustKeyService({GpgKeyGenerator? keyGenerator})
+      : keyGenerator = keyGenerator ?? GpgKeyGenerator();
+
   /// Registered key SHA3-384 fingerprints from the store, via the Rust
   /// store client. Returns `null` (instead of throwing) when the app is
   /// not signed in — matching the old `snapcraft keys` failure mode, which
@@ -99,14 +110,21 @@ class RustKeyService {
     return null;
   }
 
-  /// Creates a key by running `snap create-key <name>` in a terminal so the
-  /// passphrase prompt has a real tty. (Host-side, unchanged.)
+  /// Creates the signing key [name] by generating it directly in the host
+  /// GPG keyring via `gpg --gen-key` (see [GpgKeyGenerator]). The passphrase
+  /// is entered in the system's graphical pinentry dialog (pinentry-gnome3)
+  /// — the same popup `snap sign` uses — so no terminal is needed and the
+  /// passphrase never touches this app. The key lands in the very keyring
+  /// (`~/.snap/gnupg`) that `snap keys`, `snap export-key` and `snap sign`
+  /// use, so nothing downstream changes.
   Future<void> createKey(String name) async {
-    final cmd = 'snap create-key ${_shellQuote(name)}; '
-        'echo; '
-        'echo "If successful, you can close this window."; '
-        'read -n 1 -s -r -p "Press any key to close..."';
-    await TerminalRunner.runToCompletion(cmd);
+    try {
+      await keyGenerator.generate(name: name);
+    } on KeyGenerationException catch (e) {
+      throw KeyException(e.message);
+    } catch (e) {
+      throw KeyException('Key creation failed: $e');
+    }
   }
 
   /// Registers a key: `snap export-key <name> <account-id>` produces the
@@ -137,16 +155,13 @@ class RustKeyService {
     }
   }
 
-  /// Creates (if needed) then registers. The create step (passphrase
-  /// prompt) still needs a terminal; the register step runs through Rust.
+  /// Creates (if needed) then registers. The create step prompts for the
+  /// passphrase in the system pinentry dialog; the register step runs through
+  /// Rust as before.
   Future<void> createAndRegister(String name) async {
     final existing = await listLocalKeys();
     if (!existing.any((k) => k.name == name)) {
-      final cmd = 'snap create-key ${_shellQuote(name)}; '
-          'echo; '
-          'echo "If successful, you can close this window."; '
-          'read -n 1 -s -r -p "Press any key to close..."';
-      await TerminalRunner.runToCompletion(cmd);
+      await createKey(name);
     }
     await registerKey(name);
   }

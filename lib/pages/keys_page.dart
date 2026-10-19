@@ -454,6 +454,24 @@ class _CreateKeyDialogState extends State<_CreateKeyDialog> {
               subtitle: const Text(
                   'Required before the key can sign a store-valid model.'),
             ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline,
+                    size: 16, color: Theme.of(context).hintColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'A GnuPG window will ask for a passphrase (and a '
+                    'confirmation) to protect the new key — the same '
+                    'dialog the sign step uses.',
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(color: Theme.of(context).hintColor),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
