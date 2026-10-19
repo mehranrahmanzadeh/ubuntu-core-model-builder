@@ -1,5 +1,5 @@
 // End-to-end test for the Rust-backed store services (RustStoreService /
-// RustKeyService / RustSurlService) against the real native library and a
+// RustKeyService / RustStoreCatalogService) against the real native library and a
 // local mock store (test/support/mock_store.py).
 //
 // Skips automatically when the native library is not available (the
@@ -16,7 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ubuntu_core_model_builder/services/ffi/snapstore_auth_client.dart';
 import 'package:ubuntu_core_model_builder/services/rust_key_service.dart';
-import 'package:ubuntu_core_model_builder/services/rust_surl_service.dart';
+import 'package:ubuntu_core_model_builder/services/rust_store_catalog_service.dart';
 import 'package:ubuntu_core_model_builder/services/rust_store_service.dart';
 
 const _mockStore = 'http://127.0.0.1:8471';
@@ -61,11 +61,11 @@ void main() {
 
   group('Rust backend (e2e, mock store)', () {
     late RustStoreService store;
-    late RustSurlService surl;
+    late RustStoreCatalogService catalog;
 
     setUp(() async {
       store = RustStoreService();
-      surl = RustSurlService();
+      catalog = RustStoreCatalogService();
       // A *completed* session is reusable by the next test (several tests
       // assume the login from the first test still holds). Only abort a
       // leftover IN-PROGRESS flow, which would block any new flow.
@@ -182,11 +182,11 @@ void main() {
       expect(acct.accountId, 'DEADBEEF1234DEADBEEF1234DEADBEEF1234DEAD');
       expect(acct.username, 'mockuser');
 
-      final stores = await surl.listStores();
+      final stores = await catalog.listStores();
       expect(stores.map((e) => e.id), contains('mock-brand'));
       expect(stores.map((e) => e.id), contains('ubuntu'));
 
-      final snaps = await surl.listStoreSnaps('mock-brand');
+      final snaps = await catalog.listStoreSnaps('mock-brand');
       expect(snaps.map((e) => e.name),
           containsAll(['mock-gadget', 'mock-kernel']));
     });

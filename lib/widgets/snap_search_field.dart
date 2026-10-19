@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/store_snap.dart';
 import '../models/snap_entry.dart';
 import '../services/store_api_service.dart';
-import '../services/surl_service.dart';
+import '../services/store_models.dart';
 
 class SnapSearchField extends StatefulWidget {
   final void Function(SnapEntry entry, String? base) onSnapSelected;

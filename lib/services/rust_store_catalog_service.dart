@@ -1,10 +1,9 @@
-// Rust-backed implementation of the SurlService interface.
+// Rust-backed store catalog service.
 //
-// Drop-in replacement for `SurlService` (the `surl` CLI shell-out version):
+// Replaces the former `surl` CLI shell-out for brand-store operations:
 //
 //   * `listStores()`    — `GET /dev/api/account` through the Rust store
-//     client (same endpoint surl was hitting), replacing the surl
-//     shell-out;
+//     client (same endpoint the surl flow was hitting);
 //   * `listStoreSnaps()` — `GET /api/v2/stores/{id}/snaps` through the
 //     Rust store client;
 //   * `webLogin()`      — no exported-login terminal: reuses the app's
@@ -12,22 +11,22 @@
 //     present the dialogs; it is a no-op when already signed in.
 //
 // The model's `BrandStore` / `StoreCatalogSnap` classes and the
-// `SurlAuthException` / `SurlUnavailableException` types come from
-// `surl_service.dart` so the pages' catch clauses work unchanged.
+// `StoreAuthException` / `StoreUnavailableException` types come from
+// `store_models.dart`.
 import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 
 import 'ffi/snapstore_auth_client.dart' hide BrandStore;
 import 'rust_store_service.dart';
-import 'surl_service.dart'
+import 'store_models.dart'
     show
         BrandStore,
         StoreCatalogSnap,
-        SurlAuthException,
-        SurlUnavailableException;
+        StoreAuthException,
+        StoreUnavailableException;
 
-class RustSurlService {
+class RustStoreCatalogService {
   /// `true` when the app holds a usable store session in-process.
   Future<bool> hasCredential() async {
     final session = SnapstoreAuthSession.current;
@@ -43,9 +42,9 @@ class RustSurlService {
       // Blocking FFI + HTTP — run off the UI isolate.
       raw = await Isolate.run(() => session.auth.accountInfoRaw());
     } on SnapstoreAuthError catch (e) {
-      throw SurlAuthException(_authMessage(e));
+      throw StoreAuthException(_authMessage(e));
     } catch (e) {
-      throw SurlUnavailableException('Store lookup failed: $e');
+      throw StoreUnavailableException('Store lookup failed: $e');
     }
     return _parseStores(raw['stores']);
   }
@@ -53,9 +52,9 @@ class RustSurlService {
   /// Snaps listed in a (brand) store's catalog
   /// (`/api/v2/stores/{id}/snaps` → `snaps[].{name,id}`).
   ///
-  /// Throws [SurlAuthException] when the session is missing or the store
+  /// Throws [StoreAuthException] when the session is missing or the store
   /// rejects the token (401/403 — callers offer the re-login flow);
-  /// [SurlUnavailableException] for other transport failures.
+  /// [StoreUnavailableException] for other transport failures.
   Future<List<StoreCatalogSnap>> listStoreSnaps(String storeId) async {
     final session = _requireSession();
     final Map<String, Object?> raw;
@@ -64,11 +63,11 @@ class RustSurlService {
     } on SnapstoreAuthError catch (e) {
       if (e.kind == 'http' &&
           (e.httpStatus == 401 || e.httpStatus == 403)) {
-        throw SurlAuthException(_authMessage(e));
+        throw StoreAuthException(_authMessage(e));
       }
-      throw SurlUnavailableException(_transportMessage(e));
+      throw StoreUnavailableException(_transportMessage(e));
     } catch (e) {
-      throw SurlUnavailableException('Store catalog fetch failed: $e');
+      throw StoreUnavailableException('Store catalog fetch failed: $e');
     }
     final snaps = raw['snaps'];
     if (snaps is! List) return const [];
@@ -90,21 +89,21 @@ class RustSurlService {
   /// (email + 2FA dialogs).
   ///
   /// [context] presents the login dialogs; when it is `null` the method is
-  /// a no-op if already signed in and throws [SurlAuthException] otherwise.
+  /// a no-op if already signed in and throws [StoreAuthException] otherwise.
   Future<void> webLogin({BuildContext? context}) async {
     final session = SnapstoreAuthSession.current;
     if (session != null && session.auth.state == AuthState.succeeded) {
       return;
     }
     if (context == null || !context.mounted) {
-      throw SurlAuthException(
+      throw StoreAuthException(
           'Store sign-in is required. Sign in on the Account step first.');
     }
     final svc = RustStoreService();
     await svc.loginInteractive(context: context);
     final s2 = SnapstoreAuthSession.current;
     if (s2 == null || s2.auth.state != AuthState.succeeded) {
-      throw SurlAuthException('Store sign-in was cancelled.');
+      throw StoreAuthException('Store sign-in was cancelled.');
     }
   }
 
@@ -113,7 +112,7 @@ class RustSurlService {
   SnapstoreAuthSession _requireSession() {
     final session = SnapstoreAuthSession.current;
     if (session == null || session.auth.state != AuthState.succeeded) {
-      throw SurlAuthException(
+      throw StoreAuthException(
           'Not authenticated (sign in on the Account step).');
     }
     return session;

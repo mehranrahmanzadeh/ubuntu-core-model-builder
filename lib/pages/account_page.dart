@@ -7,7 +7,7 @@ import '../theme/status_colors.dart';
 import '../models/wizard_step.dart';
 import '../services/ffi/snapstore_auth_client.dart';
 import '../services/rust_store_service.dart';
-import '../services/surl_service.dart';
+import '../services/store_models.dart';
 
 class AccountPage extends StatelessWidget {
   final WizardState state;

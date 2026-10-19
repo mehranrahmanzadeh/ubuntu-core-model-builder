@@ -652,7 +652,7 @@ final class SnapstoreAuth {
   /// `GET {store}/dev/api/account` — the full account object.
   ///
   /// Returns the raw JSON (a `Map`) — the same document
-  /// `snapcraft keys` and surl-based brand-store listings consume.
+  /// `snapcraft keys` and brand-store listings consume.
   /// Contains `account_id`, `account_keys[]` (name +
   /// `public-key-sha3-384`), `stores[]` (id/name/roles), `snaps[]`, ...
   /// Valid in [AuthState.succeeded]. Blocking — run on a background isolate.
@@ -668,7 +668,7 @@ final class SnapstoreAuth {
   }
 
   /// Brand stores the account can access, parsed from [accountInfoRaw].
-  /// Replaces the `surl` shell-out for store listings.
+  /// Replaces the former `surl` CLI shell-out for store listings.
   List<BrandStore> brandStores() {
     return BrandStore.parseAll(_asList(accountInfoRaw()['stores']));
   }
@@ -848,7 +848,7 @@ final class RegisteredKey {
 }
 
 /// A brand store the account can access (`/dev/api/account` → `stores[]`).
-/// Mirrors `SurlService.BrandStore` in the app.
+/// Mirrors the app's `BrandStore` model (in `store_models.dart`).
 final class BrandStore {
   const BrandStore({required this.id, this.name, this.roles = const []});
 

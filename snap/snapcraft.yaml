@@ -125,6 +125,7 @@ parts:
       - build-essential   # cc for ring's C shim
       - curl
       - ca-certificates
+      - patchelf
     override-build: |
       set -ex
       set +u
@@ -183,12 +184,19 @@ parts:
     build-attributes: [enable-patchelf]
     build-packages:
       - libsecret-1-dev
+    stage-packages:
+      - libsecret-1-0
     override-build: |
-      set -eux
+      set -ex
+      set +u
       mkdir -p $CRAFT_PART_INSTALL/bin
       git submodule update --init --recursive
 
       flutter pub get
+      # required for the test suite
+      # export SNAPSTORE_AUTH_LIB=$CRAFT_STAGE/bin/libsnapstore_auth.so
+      # run the whole test suite
+      # flutter test
       flutter build linux --release -v
       cp -r build/linux/*/release/bundle/* $CRAFT_PART_INSTALL/bin/
   libraries:
@@ -223,7 +231,8 @@ parts:
       - shared-mime-info
       - libglib2.0-bin
       - libibus-1.0-5
-      - libsecret-1-0
+    stage:
+      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libgallium-*
   dri-no-patchelf:
     after: [libraries]
     plugin: nil
@@ -235,58 +244,3 @@ parts:
       - usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/dri
       - usr/share/drirc.d
       - usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libgallium*
-  surl:
-    plugin: nil
-    source: https://github.com/canonical/surl.git
-    source-type: git
-    source-commit: 3e83328161f0d79ecdb15a6a0a3bcde8f5ab41cb
-    build-packages:
-      - patchelf
-      - python3
-      - python3-venv
-      - python3-pip
-      - git
-      - build-essential
-      - libffi-dev
-    override-build: |
-      set -eux
-      venv="$CRAFT_PART_INSTALL/usr/share/surl-venv"
-      python3 -m venv "$venv"
-      "$venv/bin/pip" install --upgrade pip
-      "$venv/bin/pip" install -r "$CRAFT_PART_SRC/requirements.txt"
-      "$venv/bin/pip" install "$CRAFT_PART_SRC"
-      test -f "$venv/bin/surl_cli.py"
-    override-prime: |
-      craftctl default
-
-      BASE="core24"
-
-      RPATH="/snap/$BASE/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR"
-      INTERP="/snap/$BASE/current/lib64/ld-linux-x86-64.so.2"
-      CPYTHON_ARCH="x86_64"
-
-      if [ $CRAFT_ARCH_BUILD_FOR = "arm64" ]; then
-        INTERP="/snap/$BASE/current/lib/ld-linux-aarch64.so.1"
-        CPYTHON_ARCH="aarch64"
-      fi
-
-      patchelf --force-rpath --set-rpath $RPATH $CRAFT_PRIME/usr/bin/python3.12
-      patchelf --set-interpreter $INTERP $CRAFT_PRIME/usr/bin/python3.12
-
-      for file in $CRAFT_PRIME/usr/lib/python3.12/lib-dynload/*; do
-          patchelf --force-rpath --set-rpath "\$ORIGIN/lib:$RPATH" $file;
-      done
-
-      patchelf --force-rpath --set-rpath "\$ORIGIN/lib:\$ORIGIN/../../$CRAFT_ARCH_TRIPLET_BUILD_FOR:$RPATH" \
-                                          $CRAFT_PRIME/usr/lib/python3.12/lib-dynload/_ctypes.cpython-312-$CPYTHON_ARCH-linux-gnu.so
-
-      for file in $(find $CRAFT_PRIME/usr/share/surl-venv/lib/python3.12/site-packages/ -name *.so); do
-          patchelf --force-rpath --set-rpath $RPATH $file
-      done
-    stage-packages:
-      - python3.12-minimal
-      - libpython3.12-minimal
-      - libpython3.12-stdlib
-      - ca-certificates
-      - libffi8
-      - libssl3

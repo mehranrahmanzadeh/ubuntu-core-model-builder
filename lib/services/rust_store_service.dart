@@ -72,10 +72,10 @@ class RustStoreService {
   ///
   /// `store_admin` is required to read a brand store's catalog
   /// (`GET /api/v2/stores/{id}/snaps` — the Snaps page). It is the same scope
-  /// the old `surl` flow obtained via
+  /// the old snapcraft/surl flow obtained via
   /// `snapcraft export-login --acls package_access,store_admin`. Requesting it
   /// in the single in-app login means one sign-in covers BOTH the account/keys
-  /// endpoints and the brand-store catalog, so [RustSurlService.webLogin] can
+  /// endpoints and the brand-store catalog, so [RustStoreCatalogService.webLogin] can
   /// safely no-op when a session already exists.
   ///
   /// `modify_account_key` is required to register signing keys

@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yaru/yaru.dart';
 
-import 'package:ubuntu_core_model_builder/services/surl_service.dart';
+import 'package:ubuntu_core_model_builder/services/store_models.dart';
 import 'package:ubuntu_core_model_builder/services/assertion_verifier.dart';
 import 'package:ubuntu_core_model_builder/widgets/snap_search_field.dart';
 import 'package:ubuntu_core_model_builder/widgets/verification_report_view.dart';

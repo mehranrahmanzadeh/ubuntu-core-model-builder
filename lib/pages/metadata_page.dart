@@ -12,8 +12,8 @@ import '../models/wizard_step.dart';
 import '../services/model_import_service.dart';
 import '../services/host_env.dart';
 import '../services/store_api_service.dart';
-import '../services/rust_surl_service.dart';
-import '../services/surl_service.dart';
+import '../services/rust_store_catalog_service.dart';
+import '../services/store_models.dart';
 
 class MetadataPage extends StatefulWidget {
   final WizardState state;
@@ -424,26 +424,26 @@ class _MetadataPageState extends State<MetadataPage> {
   }
 
   Future<void> _queryAndShowStores(BuildContext context) async {
-    final surl = RustSurlService();
+    final catalog = RustStoreCatalogService();
     state.setBusy(true, message: 'Fetching your stores...');
     try {
       List<BrandStore> stores;
       try {
-        stores = await surl.listStores();
-      } on SurlAuthException {
+        stores = await catalog.listStores();
+      } on StoreAuthException {
         if (!context.mounted) rethrow;
         state.setBusy(true, message: 'Signing you in to the store...');
-        await surl.webLogin(context: context);
+        await catalog.webLogin(context: context);
         state.setBusy(true, message: 'Fetching your stores...');
-        stores = await surl.listStores();
+        stores = await catalog.listStores();
       }
       await _saveCachedStores(stores);
       if (!context.mounted) return;
       await _showStorePicker(context, stores);
-    } on SurlUnavailableException catch (e) {
+    } on StoreUnavailableException catch (e) {
       if (!context.mounted) return;
       _error(context, 'Store lookup is unavailable: $e.');
-    } on SurlAuthException catch (e) {
+    } on StoreAuthException catch (e) {
       if (!context.mounted) return;
       _error(context, 'Store login failed: $e');
     } catch (e) {
@@ -665,7 +665,7 @@ class _MetadataPageState extends State<MetadataPage> {
 
   /// Read-only store display. A brand store can only be set by picking it from
   /// the authenticated "Fetch my stores" list — never typed manually — so that
-  /// selecting a brand store guarantees surl authentication has occurred.
+  /// selecting a brand store guarantees store authentication has occurred.
   Widget _buildStoreField(BuildContext context) {
     final id = model.store;
     final hasStore = id != null && id.isNotEmpty;
@@ -695,7 +695,7 @@ class _MetadataPageState extends State<MetadataPage> {
         const SizedBox(width: 12),
         if (hasStore)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: 0),
             child: IconButton(
               icon: const Icon(Icons.clear),
               tooltip: 'Use global store',

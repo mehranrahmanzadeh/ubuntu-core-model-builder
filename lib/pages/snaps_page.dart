@@ -7,8 +7,8 @@ import '../models/model_assertion.dart';
 import '../models/snap_entry.dart';
 import '../services/assertion_builder.dart';
 import '../services/store_api_service.dart';
-import '../services/rust_surl_service.dart';
-import '../services/surl_service.dart';
+import '../services/rust_store_catalog_service.dart';
+import '../services/store_models.dart';
 import '../widgets/snap_search_field.dart';
 
 class SnapsPage extends StatefulWidget {
@@ -41,7 +41,7 @@ class _SnapsPageState extends State<SnapsPage> {
   String? _catalogForStore;
   bool _fetchingCatalog = false;
   String? _storeName; // resolved display name for _storeId
-  final RustSurlService _surl = RustSurlService();
+  final RustStoreCatalogService _storeCatalog = RustStoreCatalogService();
   // Session cache: storeId -> catalog.
   static final Map<String, List<StoreCatalogSnap>> _catalogCache = {};
 
@@ -58,7 +58,7 @@ class _SnapsPageState extends State<SnapsPage> {
       await _seedRequiredSnaps();
       _resolveGadgetBase();
       // A brand store can only be selected via the authenticated picker, so a
-      // valid surl credential should exist. Auto-fetch the catalog silently
+      // a valid store credential should exist. Auto-fetch the catalog silently
       // (search is useless for a brand store without it). Falls back to the
       // disclosure/re-auth prompt only if the token turns out to be missing
       // or expired.
@@ -155,8 +155,8 @@ class _SnapsPageState extends State<SnapsPage> {
     try {
       List<StoreCatalogSnap> snaps;
       try {
-        snaps = await _surl.listStoreSnaps(storeId);
-      } on SurlAuthException {
+        snaps = await _storeCatalog.listStoreSnaps(storeId);
+      } on StoreAuthException {
         // Not authenticated (or token lacks the permissions). Disclose and
         // offer to sign in with the required scope.
         final ok = await _showStoreAdminDisclosure();
@@ -164,8 +164,8 @@ class _SnapsPageState extends State<SnapsPage> {
           return; // user declined; leave catalog unfetched
         }
         if (!mounted) return;
-        await _surl.webLogin(context: context);
-        snaps = await _surl.listStoreSnaps(storeId);
+        await _storeCatalog.webLogin(context: context);
+        snaps = await _storeCatalog.listStoreSnaps(storeId);
       }
       _catalogCache[storeId] = snaps;
       if (!mounted) return;
@@ -173,9 +173,9 @@ class _SnapsPageState extends State<SnapsPage> {
         _catalog = snaps;
         _catalogForStore = storeId;
       });
-    } on SurlUnavailableException catch (e) {
+    } on StoreUnavailableException catch (e) {
       _errorSnack('Brand-store browsing unavailable: $e');
-    } on SurlAuthException catch (e) {
+    } on StoreAuthException catch (e) {
       _errorSnack('Store sign-in failed: $e');
     } catch (e) {
       _errorSnack('Could not load store catalog: $e');

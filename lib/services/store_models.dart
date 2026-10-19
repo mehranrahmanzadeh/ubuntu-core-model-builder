@@ -1,3 +1,4 @@
+
 /// A brand store the account can access. `ubuntu` is the global store, for
 /// which the model's `store` field should be omitted entirely.
 class BrandStore {
@@ -30,21 +31,20 @@ class StoreCatalogSnap {
 }
 
 /// Shared-prefs key under which the brand-store list is cached.
-/// (Top-level because it is shared between the Rust-backed surl service
-/// and the pages; the former snapcraft-based implementation no longer
-/// owns it.)
+/// (Top-level because it is shared between the store catalog service
+/// and the pages.)
 const String prefCachedStores = 'metadata.cachedStores';
 
-class SurlAuthException implements Exception {
+class StoreAuthException implements Exception {
   final String message;
-  SurlAuthException(this.message);
+  StoreAuthException(this.message);
   @override
   String toString() => message;
 }
 
-class SurlUnavailableException implements Exception {
+class StoreUnavailableException implements Exception {
   final String message;
-  SurlUnavailableException([this.message = 'surl is not available.']);
+  StoreUnavailableException([this.message = 'Store lookup is unavailable.']);
   @override
   String toString() => message;
 }
